@@ -16,6 +16,7 @@
                 <li><a href="{{ route('customer.home') }}" class="text-gray-700 hover:text-green-600 transition">Home</a></li>
                 <li><a href="{{ route('cart.index') }}" class="text-gray-700 hover:text-green-600 transition">Cart</a></li>
                 <li><a href="{{ route('orders.index') }}" class="text-gray-700 hover:text-green-600 transition">Orders</a></li>
+                <li><a href="{{ route('shops.index') }}" class="text-gray-700 hover:text-green-600 transition">Shops</a></li>
                 <li><a href="{{ route('profile.index') }}" class="text-gray-700 hover:text-green-600 transition">Profile</a></li>
                 <li>
                     <form action="{{ route('logout') }}" method="POST" class="inline">

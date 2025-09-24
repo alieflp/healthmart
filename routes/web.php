@@ -89,7 +89,7 @@ Route::middleware(['auth', 'role:customer'])->group(function () {
     // Untuk customer ajukan toko
     Route::get('/shops/request', [ShopController::class, 'requestForm'])->name('shops.request');
     Route::post('/shops/request', [ShopController::class, 'requestStore'])->name('shops.request.store');
-
+    Route::get('/customer/shops', [ShopController::class, 'index'])->name('shops.index');
     // detail produk
     Route::get('/customer/products/{id}', [ProductController::class, 'show'])->name('customer.products.show');
 });

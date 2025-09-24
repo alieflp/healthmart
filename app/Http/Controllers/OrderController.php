@@ -7,6 +7,9 @@ use App\Models\OrderItem;
 use App\Models\Cart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OrderInvoiceMail;
 
 class OrderController extends Controller
 {
@@ -24,44 +27,63 @@ class OrderController extends Controller
     /**
      * 🟢 Proses checkout dari Blade (WEB)
      */
-    public function processCheckout(Request $request)
-    {
-        $request->validate([
-            'payment_method' => 'required|in:debit,credit,cod'
-        ]);
+   public function processCheckout(Request $request)
+{
+    $request->validate([
+        'payment_method' => 'required|in:debit,credit,cod'
+    ]);
 
-        $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
-        if ($cartItems->isEmpty()) {
-            return redirect()->route('cart.index')->with('error', 'Keranjang kosong');
-        }
-
-        $total = $cartItems->sum(fn($item) => $item->product->price * $item->quantity);
-
-        $order = Order::create([
-            'user_id' => Auth::id(),
-            'total_price' => $total,
-            'payment_method' => $request->payment_method,
-            'status' => 'pending'
-        ]);
-
-        foreach ($cartItems as $item) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $item->product_id,
-                'quantity' => $item->quantity,
-                'price' => $item->product->price
-            ]);
-
-            // kurangi stok
-            $item->product->decrement('stock', $item->quantity);
-        }
-
-        // kosongkan keranjang
-        Cart::where('user_id', Auth::id())->delete();
-
-        return redirect()->route('orders.show', $order->id)
-            ->with('success', 'Pesanan berhasil dibuat!');
+    $cartItems = Cart::with('product')->where('user_id', Auth::id())->get();
+    if ($cartItems->isEmpty()) {
+        return redirect()->route('cart.index')->with('error', 'Keranjang kosong');
     }
+
+    $total = $cartItems->sum(fn($item) => $item->product->price * $item->quantity);
+
+    $order = Order::create([
+        'user_id' => Auth::id(),
+        'total_price' => $total,
+        'payment_method' => $request->payment_method,
+        'status' => 'pending'
+    ]);
+
+    foreach ($cartItems as $item) {
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $item->product_id,
+            'quantity' => $item->quantity,
+            'price' => $item->product->price
+        ]);
+
+        // kurangi stok
+        $item->product->decrement('stock', $item->quantity);
+    }
+
+    // kosongkan keranjang
+    Cart::where('user_id', Auth::id())->delete();
+
+    /**
+     * 🟢 Generate PDF Invoice
+     */
+    $pdf = Pdf::loadView('pdf.invoice', compact('order'));
+    $fileName = 'invoice_' . $order->id . '.pdf';
+    $filePath = storage_path('app/invoices/' . $fileName);
+
+    // pastikan folder invoices ada
+    if (!file_exists(storage_path('app/invoices'))) {
+        mkdir(storage_path('app/invoices'), 0777, true);
+    }
+
+    $pdf->save($filePath);
+
+    /**
+     * 🟢 Kirim Email ke User
+     */
+    Mail::to($order->user->email)->send(new OrderInvoiceMail($order, $filePath));
+
+    return redirect()->route('orders.show', $order->id)
+        ->with('success', 'Pesanan berhasil dibuat! Invoice telah dikirim ke email.');
+}
 
     /**
      * 🟢 Lihat semua order user (WEB)

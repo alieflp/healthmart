@@ -10,7 +10,7 @@ class ShopController extends Controller
 {
     // --- ADMIN ---
 
-    public function index()
+    public function AdminIndex()
     {
         $shops = Shop::all();
         return view('admin.shops.index', compact('shops'));
@@ -31,9 +31,13 @@ class ShopController extends Controller
 
         Shop::create($validated);
 
-        return redirect()->route('admin.shops.index')->with('success', 'Shop berhasil dibuat.');
+        return redirect()->route('customer.shops.index')->with('success', 'Shop berhasil dibuat.');
     }
-
+    public function index()
+    {
+        $shops = Shop::where('user_id', auth::id())->get();
+        return view('customer.shops.index', compact('shops'));
+    }
     public function show(Shop $shop)
     {
         return view('admin.shops.show', compact('shop'));
